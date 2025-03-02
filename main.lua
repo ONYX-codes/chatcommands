@@ -1,5 +1,3 @@
--- LocalScript for Solara executor
-
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
