@@ -1,278 +1,278 @@
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
-local TeleportService = game:GetService("TeleportService")
-local RunService = game:GetService("RunService")
+local a=game:GetService"Players"
+local b=a.LocalPlayer
+local c=game:GetService"TeleportService"
+local d=game:GetService"RunService"
 
-if not Player then
-    print("Error: Player not found!")
-    return
+if not b then
+print"Error: Player not found!"
+return
 end
 
-local isFlying = false
-local commandQueue = {}
-local isProcessing = false
+local e=false
+local f={}
+local g=false
 
--- Function to process commands from the queue
+
 local function processQueue()
-    if isProcessing or #commandQueue == 0 then return end
-    isProcessing = true
-    
-    local message = table.remove(commandQueue, 1)
-    local msgLower = message:lower()
-    print("Processing command: " .. message)
-    
-    if msgLower == "./speed" then
-        print("Command './speed' executed by " .. Player.Name)
-        local success, error = pcall(function()
-            local humanoid = Player.Character and Player.Character:FindFirstChild("Humanoid")
-            if humanoid then
-                humanoid.WalkSpeed = 50
-                local elapsed = 0
-                local connection
-                connection = RunService.Heartbeat:Connect(function(dt)
-                    elapsed = elapsed + dt
-                    if elapsed >= 3 then
-                        humanoid.WalkSpeed = 16
-                        connection:Disconnect()
-                        print("Speed boost ended!")
-                    end
-                end)
-                print("Speed boost activated!")
-            else
-                print("No humanoid found!")
-            end
-        end)
-        if not success then
-            print("Speed failed: " .. tostring(error))
-        end
-        
-    elseif msgLower == "./fly" then
-        print("Command './fly' executed by " .. Player.Name)
-        local success, error = pcall(function()
-            local character = Player.Character
-            local humanoid = character and character:FindFirstChild("Humanoid")
-            local rootPart = character and character:FindFirstChild("HumanoidRootPart")
-            if humanoid and rootPart then
-                if isFlying then
-                    local bv = rootPart:FindFirstChild("FlyVelocity")
-                    local bg = rootPart:FindFirstChild("FlyGyro")
-                    if bv then bv:Destroy() end
-                    if bg then bg:Destroy() end
-                    humanoid.PlatformStand = false
-                    print("Fly turned off!")
-                else
-                    humanoid.PlatformStand = true
-                    local bv = Instance.new("BodyVelocity")
-                    bv.Name = "FlyVelocity"
-                    bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-                    bv.Velocity = Vector3.new(0, 0, 0)
-                    bv.Parent = rootPart
-                    local bg = Instance.new("BodyGyro")
-                    bg.Name = "FlyGyro"
-                    bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-                    bg.P = 1000
-                    bg.Parent = rootPart
-                    local connection
-                    connection = RunService.RenderStepped:Connect(function()
-                        if not character or not rootPart or not bv or not bg then
-                            connection:Disconnect()
-                            return
-                        end
-                        local cam = workspace.CurrentCamera
-                        local dir = Vector3.new()
-                        local uis = game:GetService("UserInputService")
-                        if uis:IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.CFrame.LookVector end
-                        if uis:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.CFrame.LookVector end
-                        if uis:IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.CFrame.RightVector end
-                        if uis:IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.CFrame.RightVector end
-                        if uis:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0, 1, 0) end
-                        if uis:IsKeyDown(Enum.KeyCode.LeftShift) then dir = dir - Vector3.new(0, 1, 0) end
-                        bv.Velocity = dir.Unit * 50
-                        bg.CFrame = cam.CFrame
-                    end)
-                    print("Fly turned on!")
-                end
-                isFlying = not isFlying
-            else
-                print("No humanoid or root part found!")
-            end
-        end)
-        if not success then
-            print("Fly failed: " .. tostring(error))
-        end
-    
-    elseif msgLower == "./unban" then
-        print("Command './unban' executed by " .. Player.Name)
-        local success, error = pcall(function()
-            game:GetService("VoiceChatService"):joinVoice() -- Placeholder; still invalid
-            print("Unban voice chat attempted!")
-        end)
-        if not success then
-            print("Unban failed: " .. tostring(error))
-        end
+if g or#f==0 then return end
+g=true
 
-    elseif msgLower == "./cmds" then
-        print("Command './cmds' executed by " .. Player.Name)
-        local success, error = pcall(function()
-            local existingGui = Player:FindFirstChild("PlayerGui") and Player.PlayerGui:FindFirstChild("CommandsGui")
-            if existingGui then existingGui:Destroy() end
-            
-            local sg = Instance.new("ScreenGui")
-            sg.Name = "CommandsGui"
-            sg.Parent = Player.PlayerGui
-            
-            local frame = Instance.new("Frame")
-            frame.Size = UDim2.new(0, 200, 0, 180)
-            frame.Position = UDim2.new(0.5, -100, 0, 5)
-            frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            frame.Parent = sg
-            
-            local title = Instance.new("TextLabel")
-            title.Size = UDim2.new(1, 0, 0, 30)
-            title.Position = UDim2.new(0, 0, 0, 0)
-            title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-            title.Text = "Available Commands"
-            title.TextColor3 = Color3.fromRGB(255, 255, 255)
-            title.TextScaled = true
-            title.Parent = frame
-            
-            local cmdsList = Instance.new("TextLabel")
-            cmdsList.Size = UDim2.new(1, -10, 1, -40)
-            cmdsList.Position = UDim2.new(0, 5, 0, 35)
-            cmdsList.BackgroundTransparency = 1
-            cmdsList.Text = "./speed - Boost speed\n./fly - Toggle flight\n./cmds - Show this GUI\n./unban - Unbans voicechat\n./rejoin - Rejoin server\n./tp <username> - Teleport to player"
-            cmdsList.TextColor3 = Color3.fromRGB(255, 255, 255)
-            cmdsList.TextScaled = true
-            cmdsList.TextXAlignment = Enum.TextXAlignment.Left
-            cmdsList.Parent = frame
-            
-            local closeButton = Instance.new("TextButton")
-            closeButton.Size = UDim2.new(0, 50, 0, 20)
-            closeButton.Position = UDim2.new(1, -55, 0, 5)
-            closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-            closeButton.Text = "Close"
-            closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-            closeButton.TextScaled = true
-            closeButton.Parent = frame
-            
-            closeButton.MouseButton1Click:Connect(function()
-                sg:Destroy()
-                print("Commands GUI closed!")
-            end)
-            
-            print("Commands GUI opened!")
-        end)
-        if not success then
-            print("Commands GUI failed: " .. tostring(error))
-        end
+local h=table.remove(f,1)
+local i=h:lower()
+print("Processing command: "..h)
 
-    elseif msgLower == "./rejoin" then
-        print("Command './rejoin' executed by " .. Player.Name)
-        local success, error = pcall(function()
-            local placeId = game.PlaceId
-            local jobId = game.JobId
-            if jobId and jobId ~= "" then
-                TeleportService:TeleportToPlaceInstance(placeId, jobId, Player)
-                print("Rejoining server...")
-            else
-                print("No JobId available, teleporting to new instance...")
-                TeleportService:Teleport(placeId, Player)
-            end
-        end)
-        if not success then
-            print("Rejoin failed: " .. tostring(error))
-        end
-
-    elseif msgLower:match("^%./tp%s+") then
-        local targetName = msgLower:match("^%./tp%s+(.+)$")
-        if targetName then
-            print("Command './tp " .. targetName .. "' executed by " .. Player.Name)
-            local success, error = pcall(function()
-                local targetPlayer = Players:FindFirstChild(targetName) -- Exact match on username
-                if not targetPlayer then
-                    -- Try exact match on DisplayName if Name fails
-                    for _, p in pairs(Players:GetPlayers()) do
-                        if p.DisplayName:lower() == targetName then
-                            targetPlayer = p
-                            break
-                        end
-                    end
-                end
-                if targetPlayer then
-                    local myCharacter = Player.Character
-                    local targetCharacter = targetPlayer.Character
-                    if not targetCharacter or not targetCharacter:FindFirstChild("HumanoidRootPart") then
-                        -- Wait briefly for character to load
-                        targetCharacter = targetPlayer.Character or targetPlayer.CharacterAdded:Wait()
-                    end
-                    local myRoot = myCharacter and myCharacter:FindFirstChild("HumanoidRootPart")
-                    local targetRoot = targetCharacter and targetCharacter:FindFirstChild("HumanoidRootPart")
-                    if myRoot and targetRoot then
-                        myRoot.CFrame = targetRoot.CFrame + Vector3.new(0, 2, 0)
-                        print("Teleported to " .. targetPlayer.Name .. "!")
-                    else
-                        print("Failed: No valid character or root part found! (You: " .. (myRoot and "yes" or "no") .. ", Target: " .. (targetRoot and "yes" or "no") .. ")")
-                    end
-                else
-                    print("Failed: Player '" .. targetName .. "' not found in game!")
-                end
-            end)
-            if not success then
-                print("Teleport failed: " .. tostring(error))
-            end
-        else
-            print("Failed: No username provided for './tp'!")
-        end
-    end
-    
-    isProcessing = false
-    task.spawn(processQueue)
+if i=="./speed"then
+print("Command './speed' executed by "..b.Name)
+local j,k=pcall(function()
+local j=b.Character and b.Character:FindFirstChild"Humanoid"
+if j then
+j.WalkSpeed=50
+local k=0
+local l
+l=d.Heartbeat:Connect(function(m)
+k=k+m
+if k>=3 then
+j.WalkSpeed=16
+l:Disconnect()
+print"Speed boost ended!"
+end
+end)
+print"Speed boost activated!"
+else
+print"No humanoid found!"
+end
+end)
+if not j then
+print("Speed failed: "..tostring(k))
 end
 
--- Function to handle chat input
-local function onChat(message)
-    table.insert(commandQueue, message)
-    print("Queued command: " .. message .. " (Queue size: " .. #commandQueue .. ")")
-    if not isProcessing then
-        task.spawn(processQueue)
-    end
+elseif i=="./fly"then
+print("Command './fly' executed by "..b.Name)
+local j,k=pcall(function()
+local j=b.Character
+local k=j and j:FindFirstChild"Humanoid"
+local l=j and j:FindFirstChild"HumanoidRootPart"
+if k and l then
+if e then
+local m=l:FindFirstChild"FlyVelocity"
+local n=l:FindFirstChild"FlyGyro"
+if m then m:Destroy()end
+if n then n:Destroy()end
+k.PlatformStand=false
+print"Fly turned off!"
+else
+k.PlatformStand=true
+local m=Instance.new"BodyVelocity"
+m.Name="FlyVelocity"
+m.MaxForce=Vector3.new(1e5,1e5,1e5)
+m.Velocity=Vector3.new(0,0,0)
+m.Parent=l
+local n=Instance.new"BodyGyro"
+n.Name="FlyGyro"
+n.MaxTorque=Vector3.new(1e5,1e5,1e5)
+n.P=1000
+n.Parent=l
+local o
+o=d.RenderStepped:Connect(function()
+if not j or not l or not m or not n then
+o:Disconnect()
+return
+end
+local p=workspace.CurrentCamera
+local q=Vector3.new()
+local r=game:GetService"UserInputService"
+if r:IsKeyDown(Enum.KeyCode.W)then q=q+p.CFrame.LookVector end
+if r:IsKeyDown(Enum.KeyCode.S)then q=q-p.CFrame.LookVector end
+if r:IsKeyDown(Enum.KeyCode.A)then q=q-p.CFrame.RightVector end
+if r:IsKeyDown(Enum.KeyCode.D)then q=q+p.CFrame.RightVector end
+if r:IsKeyDown(Enum.KeyCode.Space)then q=q+Vector3.new(0,1,0)end
+if r:IsKeyDown(Enum.KeyCode.LeftShift)then q=q-Vector3.new(0,1,0)end
+m.Velocity=q.Unit*50
+n.CFrame=p.CFrame
+end)
+print"Fly turned on!"
+end
+e=not e
+else
+print"No humanoid or root part found!"
+end
+end)
+if not j then
+print("Fly failed: "..tostring(k))
 end
 
--- Robust chat connection with retry
+elseif i=="./unban"then
+print("Command './unban' executed by "..b.Name)
+local j,k=pcall(function()
+game:GetService"VoiceChatService":joinVoice()
+print"Unban voice chat attempted!"
+end)
+if not j then
+print("Unban failed: "..tostring(k))
+end
+
+elseif i=="./cmds"then
+print("Command './cmds' executed by "..b.Name)
+local j,k=pcall(function()
+local j=b:FindFirstChild"PlayerGui"and b.PlayerGui:FindFirstChild"CommandsGui"
+if j then j:Destroy()end
+
+local k=Instance.new"ScreenGui"
+k.Name="CommandsGui"
+k.Parent=b.PlayerGui
+
+local l=Instance.new"Frame"
+l.Size=UDim2.new(0,200,0,180)
+l.Position=UDim2.new(0.5,-100,0,5)
+l.BackgroundColor3=Color3.fromRGB(50,50,50)
+l.Parent=k
+
+local m=Instance.new"TextLabel"
+m.Size=UDim2.new(1,0,0,30)
+m.Position=UDim2.new(0,0,0,0)
+m.BackgroundColor3=Color3.fromRGB(30,30,30)
+m.Text="Available Commands"
+m.TextColor3=Color3.fromRGB(255,255,255)
+m.TextScaled=true
+m.Parent=l
+
+local n=Instance.new"TextLabel"
+n.Size=UDim2.new(1,-10,1,-40)
+n.Position=UDim2.new(0,5,0,35)
+n.BackgroundTransparency=1
+n.Text="./speed - Boost speed\n./fly - Toggle flight\n./cmds - Show this GUI\n./unban - Unbans voicechat\n./rejoin - Rejoin server\n./tp <username> - Teleport to player"
+n.TextColor3=Color3.fromRGB(255,255,255)
+n.TextScaled=true
+n.TextXAlignment=Enum.TextXAlignment.Left
+n.Parent=l
+
+local o=Instance.new"TextButton"
+o.Size=UDim2.new(0,50,0,20)
+o.Position=UDim2.new(1,-55,0,5)
+o.BackgroundColor3=Color3.fromRGB(255,0,0)
+o.Text="Close"
+o.TextColor3=Color3.fromRGB(255,255,255)
+o.TextScaled=true
+o.Parent=l
+
+o.MouseButton1Click:Connect(function()
+k:Destroy()
+print"Commands GUI closed!"
+end)
+
+print"Commands GUI opened!"
+end)
+if not j then
+print("Commands GUI failed: "..tostring(k))
+end
+
+elseif i=="./rejoin"then
+print("Command './rejoin' executed by "..b.Name)
+local j,k=pcall(function()
+local j=game.PlaceId
+local k=game.JobId
+if k and k~=""then
+c:TeleportToPlaceInstance(j,k,b)
+print"Rejoining server..."
+else
+print"No JobId available, teleporting to new instance..."
+c:Teleport(j,b)
+end
+end)
+if not j then
+print("Rejoin failed: "..tostring(k))
+end
+
+elseif i:match"^%./tp%s+"then
+local j=i:match"^%./tp%s+(.+)$"
+if j then
+print("Command './tp "..j.."' executed by "..b.Name)
+local k,l=pcall(function()
+local k=a:FindFirstChild(j)
+if not k then
+
+for l,m in pairs(a:GetPlayers())do
+if m.DisplayName:lower()==j then
+k=m
+break
+end
+end
+end
+if k then
+local l=b.Character
+local m=k.Character
+if not m or not m:FindFirstChild"HumanoidRootPart"then
+
+m=k.Character or k.CharacterAdded:Wait()
+end
+local n=l and l:FindFirstChild"HumanoidRootPart"
+local o=m and m:FindFirstChild"HumanoidRootPart"
+if n and o then
+n.CFrame=o.CFrame+Vector3.new(0,2,0)
+print("Teleported to "..k.Name.."!")
+else
+print("Failed: No valid character or root part found! (You: "..(n and"yes"or"no")..", Target: "..(o and"yes"or"no")..")")
+end
+else
+print("Failed: Player '"..j.."' not found in game!")
+end
+end)
+if not k then
+print("Teleport failed: "..tostring(l))
+end
+else
+print"Failed: No username provided for './tp'!"
+end
+end
+
+g=false
+task.spawn(processQueue)
+end
+
+
+local function onChat(h)
+table.insert(f,h)
+print("Queued command: "..h.." (Queue size: "..#f..")")
+if not g then
+task.spawn(processQueue)
+end
+end
+
+
 local function connectChat()
-    local tries = 0
-    local maxTries = 5
-    local connection
-    
-    while tries < maxTries do
-        local success, error = pcall(function()
-            connection = Player.Chatted:Connect(onChat)
-        end)
-        if success then
-            print("Chat command script loaded successfully on try " .. (tries + 1) .. "!")
-            break
-        else
-            warn("Chat connection attempt " .. (tries + 1) .. " failed: " .. tostring(error))
-            tries = tries + 1
-            wait(1)
-        end
-    end
-    
-    if tries >= maxTries then
-        warn("Failed to connect chat event after " .. maxTries .. " tries. Commands may not work!")
-    end
-    
-    return connection
+local h=0
+local i=5
+local j
+
+while h<i do
+local k,l=pcall(function()
+j=b.Chatted:Connect(onChat)
+end)
+if k then
+print("Chat command script loaded successfully on try "..(h+1).."!")
+break
+else
+warn("Chat connection attempt "..(h+1).." failed: "..tostring(l))
+h=h+1
+wait(1)
+end
 end
 
--- Initial connection attempt
-local chatConnection = connectChat()
+if h>=i then
+warn("Failed to connect chat event after "..i.." tries. Commands may not work!")
+end
 
--- Reconnect if character respawns
-Player.CharacterAdded:Connect(function()
-    if chatConnection then
-        chatConnection:Disconnect()
-        print("Reconnecting chat after respawn...")
-    end
-    chatConnection = connectChat()
+return j
+end
+
+
+local h=connectChat()
+
+
+b.CharacterAdded:Connect(function()
+if h then
+h:Disconnect()
+print"Reconnecting chat after respawn..."
+end
+h=connectChat()
 end)
